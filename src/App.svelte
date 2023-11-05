@@ -6,6 +6,7 @@ import { Router, Route } from "svelte-routing";
   import Footer from "./Components/Footer.svelte";
   import CovidChart from "./Pages/CovidChart.svelte";
   import Register from "./Pages/Register.svelte";
+  import { firebaseApp } from './firebase.js';
 
 </script>
 

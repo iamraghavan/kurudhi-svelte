@@ -8,6 +8,103 @@
 
 <script>
 
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+  import { getDatabase, ref, set } from 'firebase/database';
+  import { updateProfile, sendEmailVerification } from 'firebase/auth';
+ 
+
+  const auth = getAuth();
+  const db = getDatabase();
+
+  async function handleRegistration() {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Store user data in the Realtime Database
+      const userRef = ref(db, 'users/' + user.uid);
+      const timestamp = new Date().toISOString();
+      set(userRef, {
+        fullName: fullName,
+        gender: gender,
+        dateOfBirth: dateOfBirth,
+        phoneNumber: phoneNumber,
+        email: email,
+        pincode: pincode,
+        city: city || '', 
+  state: state || '', 
+  country: country || '',
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+
+      // Update the user's display name
+      await updateProfile(user, {
+        displayName: fullName,
+      });
+
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Show a success message
+      Swal.fire({
+        icon: 'success',
+        title: '🎉 Registration Successful 🎉',
+        html: `
+          <p>Thank you for being a superhero!</p>
+          <p>Your blood donation will save lives, and we can't thank you enough.</p>
+          <p>Get ready to wear your cape (or bandage) with pride! 💪🩸</p>
+        `,
+        showConfirmButton: false,
+        timer: 5000, // 2 seconds
+      });
+
+      // Redirect to the email verification Svelte component
+      // Add your code to navigate to the verification component here
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Registration Failed',
+        text: error.message,
+      });
+    }
+  }
+
+import Swal from 'sweetalert2';
+
+
+import 'intl-tel-input/build/css/intlTelInput.css';
+  import intlTelInput from 'intl-tel-input';
+
+
+  let selectedCountry = 'us';
+
+  let inputElement;
+
+  import { onMount } from 'svelte';
+  onMount(() => {
+    inputElement = document.getElementById('phone-input');
+
+    const iti = intlTelInput(inputElement, {
+      initialCountry: selectedCountry,
+      separateDialCode: true,
+      utilsScript: '/path-to-utils.js', // Update this path to the utils script
+    });
+
+    iti.promise.then((data) => {
+      phoneNumber = data.intlNumber;
+      selectedCountry = data.selectedCountryData.iso2;
+    });
+  });
+
+  function handlePhoneNumberChange() {
+    phoneNumber = inputElement.value;
+  }
+
+  function handleCountryChange() {
+    selectedCountry = inputElement.getAttribute('data-country');
+  }
+
 
 import Banner from "../Components/InnerBanner.svelte";
   
@@ -15,7 +112,7 @@ import Banner from "../Components/InnerBanner.svelte";
     { text: 'Home', url: '/' },
     { text: 'Registration' },
   ];
-  import { onMount } from 'svelte';
+ 
 
   onMount(() => {
     const inputFields = document.querySelectorAll('input[autocomplete="off"]');
@@ -153,6 +250,10 @@ select:focus {
   box-shadow: 0 0 5px rgba(49, 121, 90, 0.657); /* Change to your preferred focus shadow */
 }
 
+
+input {
+  width: 100% !important;
+}
 </style>
 
 <div class="main-page-wrapper">
@@ -207,12 +308,21 @@ select:focus {
                       <input type="date" bind:value={dateOfBirth} autocomplete="off"/>
                     </div>
                   </div>
-                  <div class="col-12">
-                    <div class="input-group-meta position-relative mb-25">
-                      <label for="phoneNumber">Phone Number*</label>
-                      <input type="tel" placeholder="Enter your Phone Number" bind:value={phoneNumber} autocomplete="off"/>
-                    </div>
-                  </div>
+
+
+                <div class="col-12">
+  <div class="input-group-meta position-relative mb-25">
+    <label class="phone1" for="phoneNumber">Phone Number*</label>
+    <input
+    bind:value={phoneNumber}
+      type="tel"
+      placeholder="Enter your Phone Number"
+      pattern="[0-9]*"
+    />
+  </div>
+</div>
+
+
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
                       <label for="cpassword">Pincode</label>
@@ -222,34 +332,28 @@ select:focus {
                   </div>
 
 
-
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
-                      <label for="country">Country</label>
-                      <select class="countries" id="country" bind:value={country} autocomplete="off">
-                        <option value="">Select Country</option>
-                    </select>
+                      <label for="city">City</label>
+                      <input type="text" placeholder="Enter your City" value={city} autocomplete="off"/>
                     </div>
                   </div>
+                 
                   
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
                       <label for="state">State</label>
-                      <select class="states " id="state" bind:value={state} autocomplete="off">
-                        <option value="">Select State</option>
-                    </select>
+                      <input type="text" placeholder="Enter your State" value={state} autocomplete="off"/>
                     </div>
                   </div>
                   
-                  <div class="col-12">
+                
+ <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
-                      <label for="city">City</label>
-                      <select class="cities " id="city" bind:value={city} autocomplete="off">
-                        <option value="">Select City</option>
-                    </select>
+                      <label for="country">Country</label>
+                      <input type="text" placeholder="Enter your Country" value={country} autocomplete="off"/>
                     </div>
                   </div>
-
 
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
@@ -301,7 +405,7 @@ select:focus {
                     </div>
                   </div>
                   <div class="col-12">
-                    <button type="submit" class="btn-eleven fw-500 tran3s d-block mt-20">Register</button>
+                    <button type="button" class="btn-eleven fw-500 tran3s d-block mt-20" on:click={handleRegistration}>Register</button>
                   </div>
                 </div>
               </form>
