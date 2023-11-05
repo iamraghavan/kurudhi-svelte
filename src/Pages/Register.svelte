@@ -1,42 +1,91 @@
 <svelte:head>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-<script src="https://demos.phplift.net/country-state-and-city-dropdown-jquery/js/countrystatecity.js?v3"></script> 
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 
 </svelte:head>
 
 <script>
-
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+  import { onMount } from 'svelte';
+  import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
   import { getDatabase, ref, set } from 'firebase/database';
+  import { navigate } from 'svelte-routing';
   import { updateProfile, sendEmailVerification } from 'firebase/auth';
- 
+  import Swal from 'sweetalert2';
 
   const auth = getAuth();
   const db = getDatabase();
+
+  let email = '';
+  let password = '';
+  let fullName = '';
+  let gender = '';
+  let dateOfBirth = '';
+  let phoneNumber = '';
+  let pincode = '';
+  let city = '';
+  let state = '';
+  let country = '';
+
+  let showPassword = false;
+  let passwordStrength = 'Weak';
+  let showSuccessAlert = false;
+
+  function checkPasswordStrength() {
+    // Define a regular expression for a strong password (e.g., at least 8 characters, including upper case, lower case, and numbers)
+    const strongPasswordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+
+    if (strongPasswordRegex.test(password)) {
+      passwordStrength = 'Strong';
+      showSuccessAlert = true;
+    } else {
+      passwordStrength = 'Weak';
+      showSuccessAlert = false;
+    }
+  }
+
+  function togglePasswordVisibility() {
+    showPassword = !showPassword;
+  }
 
   async function handleRegistration() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Generate a unique UID for the user
+      const uid = user.uid;
+
       // Store user data in the Realtime Database
-      const userRef = ref(db, 'users/' + user.uid);
-      const timestamp = new Date().toISOString();
-      set(userRef, {
+      const userRef = ref(db, 'users/' + uid);
+      const timestamp = new Date();
+      const formattedTimestamp = `${timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })} ${timestamp.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        weekday: 'long',
+      })}`;
+
+      const userData = {
+        uid: uid,
+        email: email,
         fullName: fullName,
         gender: gender,
         dateOfBirth: dateOfBirth,
         phoneNumber: phoneNumber,
-        email: email,
         pincode: pincode,
-        city: city || '', 
-  state: state || '', 
-  country: country || '',
-        created_at: timestamp,
-        updated_at: timestamp,
-      });
+        city: city,
+        state: state,
+        country: country,
+        created_at: formattedTimestamp,
+        updated_at: formattedTimestamp,
+      };
+
+      await set(userRef, userData);
 
       // Update the user's display name
       await updateProfile(user, {
@@ -46,7 +95,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
       // Send email verification
       await sendEmailVerification(user);
 
-      // Show a success message
+      // Show a success message with SweetAlert
       Swal.fire({
         icon: 'success',
         title: '🎉 Registration Successful 🎉',
@@ -56,11 +105,15 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
           <p>Get ready to wear your cape (or bandage) with pride! 💪🩸</p>
         `,
         showConfirmButton: false,
-        timer: 5000, // 2 seconds
+        timer: 5000, // 5 seconds
       });
 
-      // Redirect to the email verification Svelte component
-      // Add your code to navigate to the verification component here
+      navigate('/login');
+
+      // Clear form fields or perform other actions
+      // email = '';
+      // password = '';
+      // ... Clear other fields
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -70,96 +123,19 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
     }
   }
 
-import Swal from 'sweetalert2';
-
-
-import 'intl-tel-input/build/css/intlTelInput.css';
-  import intlTelInput from 'intl-tel-input';
-
-
-  let selectedCountry = 'us';
-
-  let inputElement;
-
-  import { onMount } from 'svelte';
-  onMount(() => {
-    inputElement = document.getElementById('phone-input');
-
-    const iti = intlTelInput(inputElement, {
-      initialCountry: selectedCountry,
-      separateDialCode: true,
-      utilsScript: '/path-to-utils.js', // Update this path to the utils script
-    });
-
-    iti.promise.then((data) => {
-      phoneNumber = data.intlNumber;
-      selectedCountry = data.selectedCountryData.iso2;
-    });
-  });
-
-  function handlePhoneNumberChange() {
-    phoneNumber = inputElement.value;
-  }
-
-  function handleCountryChange() {
-    selectedCountry = inputElement.getAttribute('data-country');
-  }
-
-
-import Banner from "../Components/InnerBanner.svelte";
+  import Banner from "../Components/InnerBanner.svelte";
   
-  let pageLinks = [
-    { text: 'Home', url: '/' },
-    { text: 'Registration' },
-  ];
- 
+    let pageLinks = [
+      { text: 'Home', url: '/' },
+      { text: 'Registration' },
+    ];
 
   onMount(() => {
     const inputFields = document.querySelectorAll('input[autocomplete="off"]');
-    inputFields.forEach(input => {
+    inputFields.forEach((input) => {
       input.setAttribute('autocomplete', 'new-password');
     });
   });
-
-// Add a click event listener to the toggle button
-
-let password = '';
-let showPassword = false;
-let passwordStrength = "Weak";
-let showSuccessAlert;
-
-function checkPasswordStrength() {
-    // Define a regular expression for a strong password (e.g., at least 8 characters, including upper case, lower case, and numbers)
-    const strongPasswordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-
-    if (strongPasswordRegex.test(password)) {
-      passwordStrength = "Strong";
-       showSuccessAlert = true;
-    } else {
-      passwordStrength = "Weak";
-      showSuccessAlert = false;
-    }
-  }
-
-  
-
-  function togglePasswordVisibility() {
-    showPassword = !showPassword;
-  }
-  let fullName = '';
-    let gender = '';
-    let dateOfBirth = '';
-    let phoneNumber = '';
-    let email = '';
-    let pincode = '';
-    let city = '';
-    let state = '';
-    let country = '';
-  
-    function handleSubmit() {
-      // Handle form submission here
-    }
-
 </script>
 
 
@@ -250,10 +226,6 @@ select:focus {
   box-shadow: 0 0 5px rgba(49, 121, 90, 0.657); /* Change to your preferred focus shadow */
 }
 
-
-input {
-  width: 100% !important;
-}
 </style>
 
 <div class="main-page-wrapper">
@@ -272,7 +244,7 @@ input {
         
           <div class="tab-content mt-40">
             <div class="tab-pane fade show active" role="tabpanel" id="fc1">
-              <form on:submit={handleSubmit}>
+              <form>
                 <div class="row">
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
@@ -308,21 +280,12 @@ input {
                       <input type="date" bind:value={dateOfBirth} autocomplete="off"/>
                     </div>
                   </div>
-
-
-                <div class="col-12">
-  <div class="input-group-meta position-relative mb-25">
-    <label class="phone1" for="phoneNumber">Phone Number*</label>
-    <input
-    bind:value={phoneNumber}
-      type="tel"
-      placeholder="Enter your Phone Number"
-      pattern="[0-9]*"
-    />
-  </div>
-</div>
-
-
+                  <div class="col-12">
+                    <div class="input-group-meta position-relative mb-25">
+                      <label for="phoneNumber">Phone Number*</label>
+                      <input type="tel" placeholder="Enter your Phone Number" bind:value={phoneNumber} autocomplete="off"/>
+                    </div>
+                  </div>
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
                       <label for="cpassword">Pincode</label>
@@ -334,11 +297,10 @@ input {
 
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
-                      <label for="city">City</label>
-                      <input type="text" placeholder="Enter your City" value={city} autocomplete="off"/>
+                      <label for="country">Country</label>
+                      <input type="text" placeholder="Enter your Country" value={country} autocomplete="off"/>
                     </div>
                   </div>
-                 
                   
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
@@ -347,13 +309,13 @@ input {
                     </div>
                   </div>
                   
-                
- <div class="col-12">
+                  <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">
-                      <label for="country">Country</label>
-                      <input type="text" placeholder="Enter your Country" value={country} autocomplete="off"/>
+                      <label for="city">City</label>
+                      <input type="text" placeholder="Enter your City" value={city} autocomplete="off"/>
                     </div>
                   </div>
+
 
                   <div class="col-12">
                     <div class="input-group-meta position-relative mb-25">

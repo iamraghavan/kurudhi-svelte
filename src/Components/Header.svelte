@@ -40,7 +40,7 @@ let logoImage = {
           <!-- logo -->
           <div class="right-widget ms-auto ms-lg-0 order-lg-2">
             <ul class="d-flex align-items-center style-none">
-              <li><a href="/" class="fw-500 text-dark" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
+              <li class="d-none d-md-block ms-4"><Link to="/login" class="fw-500 text-dark">Login</Link></li>
               <li class="d-none d-md-block ms-4"><Link to="/register" class="btn-five">Register</Link></li>
             </ul>
           </div> <!--/.right-widget-->
